@@ -1,3 +1,5 @@
+import sqlalchemy
+from src import database as db
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from src.api import auth
@@ -14,16 +16,23 @@ def reset():
     Reset the game state. Gold goes to 100, all potions are removed from
     inventory, and all barrels are removed from inventory. Carts are all reset.
     """
+    update_red_potions = "UPDATE global_inventory SET num_red_potions = 0;" 
+    update_red_ml = "UPDATE global_inventory SET num_red_ml = 0;" 
+    update_gold = "UPDATE global_inventory SET gold = 100;" 
+
+    with db.engine.begin() as connection:
+        connection.execute(sqlalchemy.text(update_red_potions))
+        connection.execute(sqlalchemy.text(update_red_ml))
+        connection.execute(sqlalchemy.text(update_gold))
+
     return "OK"
 
 
 @router.get("/shop_info/")
 def get_shop_info():
     """ """
-
-    # TODO: Change me!
     return {
-        "shop_name": "Potion Shop",
-        "shop_owner": "Potion Seller",
+        "shop_name": "Hugh's Hoppin' Potions",
+        "shop_owner": "Hugh",
     }
 
