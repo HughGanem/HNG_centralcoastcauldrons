@@ -20,51 +20,33 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     for i in range(len(potions_delivered)):
         #red potion
-        if potions_delivered[i].potion_type[0] == 100 and potions_delivered[0].potion_type[1] == 0 and potions_delivered[i].potion_type[2] == 0 and potions_delivered[i].potion_type[3] == 0:
-            red_potions_wanted = potions_delivered[i].quantity
-            
-            with db.engine.begin() as connection:
-                red_ml = connection.execute(sqlalchemy.text("SELECT num_red_ml FROM global_inventory;")).first().num_red_ml
-
-            red_potions_avaiable = red_ml // 100
-            if (red_potions_avaiable - red_potions_wanted < 0):
-                return "Not enough red ml"
+        if potions_delivered[i].potion_type == [100, 0, 0, 0]:
+            red_potions = potions_delivered[i].quantity
+            red_ml = 100 * red_potions
         #green
-        elif potions_delivered[i].potion_type[0] == 0 and potions_delivered[i].potion_type[1] == 100 and potions_delivered[i].potion_type[2] == 0 and potions_delivered[i].potion_type[3] == 0:
-            green_potions_wanted = potions_delivered[i].quantity
-
-            with db.engine.begin() as connection:
-                green_ml = connection.execute(sqlalchemy.text("SELECT num_green_ml FROM global_inventory;")).first().num_green_ml
-            
-            green_potions_avaiable = green_ml // 100
-
-            if (green_potions_avaiable - green_potions_wanted < 0):
-                return "Not enough green ml"
+        elif potions_delivered[i].potion_type == [0, 100, 0, 0]:
+            green_potions = potions_delivered[i].quantity
+            green_ml = 100 * green_potions
         #blue
-        elif potions_delivered[i].potion_type[0] == 0 and potions_delivered[i].potion_type[1] == 0 and potions_delivered[i].potion_type[2] == 100 and potions_delivered[i].potion_type[3] == 0:
-            blue_potions_wanted = potions_delivered[i].quantity
-
-            with db.engine.begin() as connection:
-                blue_ml = connection.execute(sqlalchemy.text("SELECT num_blue_ml FROM global_inventory;")).first().num_blue_ml
-            
-            blue_potions_avaiable = blue_ml // 100
-
-            if (blue_potions_avaiable - blue_potions_wanted < 0):
-                return "Not enough blue ml"
-        else:
-            return "Potion does not exist"
+        elif potions_delivered[i].potion_type == [0, 0, 100, 0]:
+            blue_potions = potions_delivered[i].quantity
+            blue_ml = 100 * green_potions
 
     with db.engine.begin() as connection:
         #red
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_potions = num_red_potions + {red_potions_wanted};"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = num_red_ml - {red_ml};" ))
-        #green
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_potions = num_green_potions + {green_potions_wanted};"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml - {green_ml};" ))
-        #blue
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_potions = num_blue_potions + {blue_potions_wanted};"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = num_blue_ml - {blue_ml};" ))
-    
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE global_inventory SET 
+                num_red_potions = num_red_potions + :red_potions,
+                num_red_ml = num_red_ml - :red_ml,
+                num_green_potions = num_green_potions + :green_potions,
+                num_green_ml = num_green_ml - :green_ml,
+                num_blue_potions = num_blue_potions + :blue_potions,
+                num_blue_ml = num_blue_ml - :blue_ml;
+                """), 
+            [{"red_potions" : red_potions, "red_ml" : red_ml, "green_potions" : green_potions, "green_ml" : green_ml, "blue_potions" : blue_potions, "blue_ml" : blue_ml}]
+        )
     return "OK"
 
 # Gets called 4 times a day

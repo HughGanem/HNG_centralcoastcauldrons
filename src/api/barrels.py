@@ -23,37 +23,32 @@ class Barrel(BaseModel):
 @router.post("/deliver")
 def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """Check and make the API call"""
-    with db.engine.begin() as connection:
-        gold_available = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory;")).first().gold
-        gold_cost = 0
+    gold_cost = 0
 
     for i in range(len(barrels_delivered)):
-        if (barrels_delivered[i].potion_type[0] == 100 and barrels_delivered[i].potion_type[1] == 0 and barrels_delivered[i].potion_type[2] == 0 and barrels_delivered[i].potion_type[3] == 0):
+        if barrels_delivered[i].potion_type == [100,0,0,0]:
             gold_cost = gold_cost + (barrels_delivered[i].price * barrels_delivered[i].quantity)
             red_ml = barrels_delivered[i].ml_per_barrel * barrels_delivered[i].quantity
 
-            if (gold_cost > gold_available):
-                return "Not enough gold"
-        elif (barrels_delivered[i].potion_type[0] == 0 and barrels_delivered[i].potion_type[1] == 100 and barrels_delivered[i].potion_type[2] == 0 and barrels_delivered[i].potion_type[3] == 0):
+        elif barrels_delivered[i].potion_type == [0,100,0,0]:
             gold_cost = gold_cost + (barrels_delivered[i].price * barrels_delivered[i].quantity)
             green_ml = barrels_delivered[i].ml_per_barrel * barrels_delivered[i].quantity
 
-            if (gold_cost > gold_available):
-                return "Not enough gold"
-        elif (barrels_delivered[i].potion_type[0] == 0 and barrels_delivered[i].potion_type[1] == 0 and barrels_delivered[i].potion_type[2] == 100 and barrels_delivered[i].potion_type[3] == 0):
+        elif barrels_delivered[i].potion_type == [0,0,100,0]:
             gold_cost = gold_cost + (barrels_delivered[i].price * barrels_delivered[i].quantity)
             blue_ml = barrels_delivered[i].ml_per_barrel * barrels_delivered[i].quantity
-
-            if (gold_cost > gold_available):
-                return "Not enough gold"
         else:
             return "Incorrect sku"
     
     with db.engine.begin() as connection:
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold - {gold_cost};"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = num_red_ml + {red_ml};"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml + {green_ml};"))
-        connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = num_blue_ml + {blue_ml};"))
+        if (gold_cost != 0):
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET gold = gold - {gold_cost};"))
+        if (red_ml != 0):
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_red_ml = num_red_ml + {red_ml};"))
+        if (green_ml != 0):
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_green_ml = num_green_ml + {green_ml};"))
+        if (blue_ml != 0):
+            connection.execute(sqlalchemy.text(f"UPDATE global_inventory SET num_blue_ml = num_blue_ml + {blue_ml};"))
     return "Ok"
 
 # Gets called once a day
@@ -61,13 +56,32 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """Print and return the catalog"""
     return_lst = []
+
+    # SELECT INTO DATABASE FOR HOW MUCH GOLD I AHVE
+    with db.engine.begin() as connection:
+        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory;")).first().gold
+
     for i in range(len(wholesale_catalog)):
-        current = {
+        if wholesale_catalog[i].price < gold:    
+            if wholesale_catalog[i].potion_type == [100,0,0,0]:
+                gold -= wholesale_catalog[i].price
+                current = {
                     "sku" : wholesale_catalog[i].sku,
-                    "quantity": wholesale_catalog[i].quantity,
-                   }
-        return_lst.append(current)
-
-    print(wholesale_catalog)
-
+                    "quantity": 1
+                }
+                return_lst.append(current)
+            elif wholesale_catalog[i].potion_type == [0,100,0,0]:
+                gold -= wholesale_catalog[i].price
+                current = {
+                    "sku" : wholesale_catalog[i].sku,
+                    "quantity": 1
+                }
+                return_lst.append(current)
+            elif wholesale_catalog[i].potion_type == [0,0,100,0]:
+                gold -= wholesale_catalog[i].price
+                current = {
+                    "sku" : wholesale_catalog[i].sku,
+                    "quantity": 1
+                }
+                return_lst.append(current)
     return return_lst
