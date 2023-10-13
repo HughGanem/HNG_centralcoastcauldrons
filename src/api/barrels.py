@@ -99,6 +99,7 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             else:
                 raise Exception("Barrel doesn't exist")
         else:
+            
             raise Exception("Not enough gold")
     
     return return_lst
