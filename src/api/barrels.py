@@ -68,24 +68,20 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     barrels_SKU = ["", "", "", ""]
     barrels_quantity = [0, 0, 0, 0]
     for barrel in wholesale_catalog:
-        if (0 <= gold):
+        if (0 <= gold and gold >= barrel.price):
             if barrel.potion_type == [1, 0, 0, 0]:
                 barrels_SKU[0] = barrel.sku
                 barrels_quantity[0] = (barrels_quantity[0] + 1)
-                gold -= barrel.price
             elif barrel.potion_type == [0, 1, 0, 0]:
                 barrels_SKU[1] = barrel.sku
                 barrels_quantity[1] = (barrels_quantity[1] + 1)
-                gold -= barrel.price
             elif barrel.potion_type == [0, 0, 1, 0]:
                 barrels_SKU[2] = barrel.sku
                 barrels_quantity[2] = (barrels_quantity[2] + 1)
-                gold -= barrel.price
             elif barrel.potion_type == [0, 0, 0, 1]:
                 barrels_SKU[3] = barrel.sku
                 barrels_quantity[3] = (barrels_quantity[3] + 1)
-                gold -= barrel.price
-            print(gold)
+            gold -= barrel.price
     
     return_lst = []
     for index in range(len(barrels_SKU)):
