@@ -93,7 +93,7 @@ def get_bottle_plan():
 
         if (green_ml >= 50 and blue_ml >= 50):
             quantity[2] = quantity[2] + 1
-            red_ml -= 50
+            green_ml -= 50
             blue_ml -= 50
 
         if (red_ml >= 100):
