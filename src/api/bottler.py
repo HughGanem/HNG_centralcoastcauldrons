@@ -101,11 +101,11 @@ def get_bottle_plan():
             red_ml -= 100
         
         if (green_ml >= 100):
-            quantity[4] = quantity[3] + 1
+            quantity[4] = quantity[4] + 1
             green_ml -= 100
         
         if (blue_ml >= 100):
-            quantity[5] = quantity[3] + 1
+            quantity[5] = quantity[5] + 1
             blue_ml -= 100
 
     return_lst = []
