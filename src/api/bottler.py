@@ -20,29 +20,26 @@ class PotionInventory(BaseModel):
 @router.post("/deliver")
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
-    red_ml = 0
-    green_ml = 0
-    blue_ml = 0
-    dark_ml = 0
-    total_potions = 0
+    print(potions_delivered)
+    red_ml = sum(potion.quantity * potion.potion_type[0] for potion in potions_delivered)
+    green_ml = sum(potion.quantity * potion.potion_type[1] for potion in potions_delivered)
+    blue_ml = sum(potion.quantity * potion.potion_type[2] for potion in potions_delivered)
+    dark_ml = sum(potion.quantity * potion.potion_type[3] for potion in potions_delivered)
 
-    for potion in potions_delivered:
-        red_ml += (potion.quantity * potion.potion_type[0])
-        green_ml += (potion.quantity * potion.potion_type[1])
-        blue_ml += (potion.quantity * potion.potion_type[2])
-        dark_ml += (potion.quantity * potion.potion_type[3])
-        total_potions += potion.quantity
-        
+    for potion_delivered in potions_delivered:
         with db.engine.begin() as connection:
             connection.execute(
                 sqlalchemy.text(
                     """
                     UPDATE potions
-                    SET quantity = quantity + :quantity
-                    WHERE potion_type = :potion_type
+                    SET quantity = quantity + :additional_potions
+                    WHERE red_ml = :red_ml and green_ml = :green_ml and blue_ml = :blue_ml and dark_ml = :dark_ml
                     """),
-                    [{"quantity" : potion.quantity, "potion_type" : "[" + ", ".join(map(str, potion.potion_type)) + "]"}])
-
+                    [{"additional_potions" : potion_delivered.quantity, 
+                      "red_ml" : potion_delivered.potion_type[0], 
+                      "green_ml" : potion_delivered.potion_type[1],
+                      "blue_ml" : potion_delivered.potion_type[2],
+                      "dark_ml" : potion_delivered.potion_type[3]}])
     
     with db.engine.begin() as connection:
         connection.execute(
@@ -54,9 +51,11 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                 num_blue_ml = num_blue_ml - :blue_ml,
                 num_dark_ml = num_dark_ml - :dark_ml;
                 """), 
-            [{"total_potions" : total_potions, "red_ml" : red_ml, "green_ml" : green_ml, "blue_ml" : blue_ml, "dark_ml" : dark_ml}]
+            [{"red_ml" : red_ml, "green_ml" : green_ml, "blue_ml" : blue_ml, "dark_ml" : dark_ml}]
         )
-
+    print(potions_delivered)
+    print({"red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml})
+    
     return "OK"
 
 # Gets called 4 times a day
@@ -72,49 +71,37 @@ def get_bottle_plan():
 
     # Initial logic: bottle all barrels into red potions.
     with db.engine.begin() as connection:
-        columns = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml FROM global_inventory;")).first()
+        columns = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml FROM global_inventory;")).first()
     red_ml = columns.num_red_ml
     green_ml = columns.num_green_ml
     blue_ml = columns.num_blue_ml
+    dark_ml = columns.num_dark_ml
 
-    potion_types = [[50, 50, 0, 0], [50, 0, 50, 0], [0, 50, 50, 0], [100, 0, 0, 0], [0, 100, 0, 0], [0, 0, 100, 0]]
-    quantity = [0, 0, 0, 0, 0, 0]
-
-    while (((red_ml // 50) + (green_ml // 50) + (blue_ml // 50)) > 1):
-        if (red_ml >= 50 and green_ml >= 50):
-            quantity[0] = quantity[0] + 1
-            red_ml -= 50
-            green_ml -= 50
-
-        if (red_ml >= 50 and blue_ml >= 50):
-            quantity[1] = quantity[1] + 1
-            red_ml -= 50
-            blue_ml -= 50
-
-        if (green_ml >= 50 and blue_ml >= 50):
-            quantity[2] = quantity[2] + 1
-            green_ml -= 50
-            blue_ml -= 50
-
-        if (red_ml >= 100):
-            quantity[3] = quantity[3] + 1
-            red_ml -= 100
-        
-        if (green_ml >= 100):
-            quantity[4] = quantity[4] + 1
-            green_ml -= 100
-        
-        if (blue_ml >= 100):
-            quantity[5] = quantity[5] + 1
-            blue_ml -= 100
+    with db.engine.begin() as connection:
+        potions = connection.execute(sqlalchemy.text("""SELECT * FROM potions ORDER BY potion_id DESC;""")).all()
 
     return_lst = []
-    for i in range(len(potion_types)):
-        if quantity[i] != 0:
+    for potion in potions:
+        quantity = potion.quantity
+        added_potion = False
+
+        while (red_ml >= potion.red_ml and green_ml >= potion.green_ml and blue_ml >= potion.blue_ml and dark_ml >= potion.dark_ml and quantity <= 4):
+            red_ml -= potion.red_ml
+            green_ml -= potion.green_ml
+            blue_ml -= potion.blue_ml
+            dark_ml -= potion.dark_ml
+            quantity += 1
+            added_potion = True
+        
+        if (added_potion):
             return_lst.append(
                 {
-                    "potion_type": potion_types[i],
-                    "quantity": quantity[i]
+                    "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml],
+                    "quantity": quantity
                 }
             )
+    
+    print(return_lst)
+    if (len(return_lst) == 0):
+        return ()
     return return_lst
