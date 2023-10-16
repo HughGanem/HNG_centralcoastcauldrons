@@ -60,46 +60,42 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """Print and return the catalog"""
-    return_lst = []
 
     # SELECT INTO DATABASE FOR HOW MUCH GOLD I AHVE
     with db.engine.begin() as connection:
         gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory;")).first().gold
 
+    barrels_SKU = ["", "", "", ""]
+    barrels_quantity = [0, 0, 0, 0]
     for barrel in wholesale_catalog:
-        if (barrel.price) < gold:
+        if (0 <= gold):
             if barrel.potion_type == [1, 0, 0, 0]:
-                gold -= (barrel.price)
-                current = {
-                    "sku" : barrel.sku,
-                    "quantity": barrel.quantity
-                }
-                return_lst.append(current)
+                barrels_SKU[0] = barrel.sku
+                barrels_quantity[0] = (barrels_quantity[0] + 1)
+                gold -= barrel.price
             elif barrel.potion_type == [0, 1, 0, 0]:
-                gold -= (barrel.price)
-                current = {
-                    "sku" : barrel.sku,
-                    "quantity": barrel.quantity
-                }
-                return_lst.append(current)
+                barrels_SKU[1] = barrel.sku
+                barrels_quantity[1] = (barrels_quantity[1] + 1)
+                gold -= barrel.price
             elif barrel.potion_type == [0, 0, 1, 0]:
-                gold -= (barrel.price * 1)
-                current = {
-                    "sku" : barrel.sku,
-                    "quantity": barrel.quantity
-                }
-                return_lst.append(current)
+                barrels_SKU[2] = barrel.sku
+                barrels_quantity[2] = (barrels_quantity[2] + 1)
+                gold -= barrel.price
             elif barrel.potion_type == [0, 0, 0, 1]:
-                gold -= (barrel.price)
-                current = {
-                    "sku" : barrel.sku,
-                    "quantity": barrel.quantity
+                barrels_SKU[3] = barrel.sku
+                barrels_quantity[3] = (barrels_quantity[3] + 1)
+                gold -= barrel.price
+            print(gold)
+    
+    return_lst = []
+    for index in range(len(barrels_SKU)):
+        if (barrels_quantity[index] != 0 and barrels_SKU[index] != ""):
+            return_lst.append(
+                {
+                "sku": barrels_SKU[index],
+                "quantity": barrels_quantity[index]
                 }
-                return_lst.append(current)
-            else:
-                raise Exception("Barrel doesn't exist")
-        else:
-            
-            raise Exception("Not enough gold")
+            )
+
     
     return return_lst

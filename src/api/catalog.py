@@ -15,39 +15,22 @@ def get_catalog():
     # Can return a max of 20 items.
 
     with db.engine.begin() as connection:
-        number_red_potions = connection.execute(sqlalchemy.text("SELECT num_red_potions FROM global_inventory;")).first().num_red_potions
-        number_green_potions = connection.execute(sqlalchemy.text("SELECT num_green_potions FROM global_inventory;")).first().num_green_potions
-        number_blue_potions = connection.execute(sqlalchemy.text("SELECT num_blue_potions FROM global_inventory;")).first().num_blue_potions
+        potions = connection.execute(sqlalchemy.text("SELECT * FROM potions WHERE quantity != 0;")).all()
 
     return_lst = []
+    count = 0
+    for potion in potions:
+        if count >= 20:
+            break
 
-    if (number_red_potions != 0):
         return_lst.append(
-        {
-            "sku": "RED_POTION_0",
-            "name": "red potion",
-            "quantity": number_red_potions,
-            "price": 1,
-            "potion_type": [100, 0, 0, 0],
-        })
-    
-    if (number_green_potions != 0):
-        return_lst.append(
-        {
-            "sku": "GREEN_POTION_0",
-            "name": "green potion",
-            "quantity": number_green_potions,
-            "price": 1,
-            "potion_type": [0, 100, 0, 0],
-        })
-    
-    if (number_blue_potions != 0):
-        return_lst.append(
-        {
-            "sku": "BLUE_POTION_0",
-            "name": "blue potion",
-            "quantity": number_blue_potions,
-            "price": 1,
-            "potion_type": [0, 0, 100, 0],
-        })
+            {
+                "sku": potion.sku,
+                "name": potion.name,
+                "quantity": potion.quantity,
+                "price": potion.price,
+                "potion_type": potion.potion_type,
+            }
+        )
+        count += 1
     return return_lst
