@@ -60,6 +60,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     """Print and return the catalog"""
+    print(wholesale_catalog)
 
     # SELECT INTO DATABASE FOR HOW MUCH GOLD I AHVE
     with db.engine.begin() as connection:
@@ -92,6 +93,8 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 "quantity": barrels_quantity[index]
                 }
             )
-
-    
+    if (len(return_lst) == 0):
+        print("no barrels")
+        return ()
+    print(return_lst)
     return return_lst
