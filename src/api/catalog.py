@@ -29,7 +29,7 @@ def get_catalog():
                 "name": potion.name,
                 "quantity": potion.quantity,
                 "price": potion.price,
-                "potion_type": potion.potion_type,
+                "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml],
             }
         )
         count += 1

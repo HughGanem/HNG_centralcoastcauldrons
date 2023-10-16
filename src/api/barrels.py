@@ -64,25 +64,34 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
 
     # SELECT INTO DATABASE FOR HOW MUCH GOLD I AHVE
     with db.engine.begin() as connection:
-        gold = connection.execute(sqlalchemy.text("SELECT gold FROM global_inventory;")).first().gold
+        result = connection.execute(sqlalchemy.text("SELECT gold, num_red_ml, num_green_ml, num_blue_ml, num_dark_ml FROM global_inventory;")).first()
+    gold = result.gold
+    red_ml = result.num_red_ml
+    green_ml = result.num_green_ml
+    blue_ml = result.num_blue_ml
+    dark_ml = result.num_dark_ml
+
 
     barrels_SKU = ["", "", "", ""]
     barrels_quantity = [0, 0, 0, 0]
     for barrel in wholesale_catalog:
         if (0 <= gold and gold >= barrel.price):
-            if barrel.potion_type == [1, 0, 0, 0]:
+            if (barrel.potion_type == [1, 0, 0, 0] and red_ml <= 500):
                 barrels_SKU[0] = barrel.sku
                 barrels_quantity[0] = (barrels_quantity[0] + 1)
-            elif barrel.potion_type == [0, 1, 0, 0]:
+                gold -= barrel.price
+            elif (barrel.potion_type == [0, 1, 0, 0] and green_ml <= 500):
                 barrels_SKU[1] = barrel.sku
                 barrels_quantity[1] = (barrels_quantity[1] + 1)
-            elif barrel.potion_type == [0, 0, 1, 0]:
+                gold -= barrel.price
+            elif (barrel.potion_type == [0, 0, 1, 0] and blue_ml <= 500):
                 barrels_SKU[2] = barrel.sku
                 barrels_quantity[2] = (barrels_quantity[2] + 1)
-            elif barrel.potion_type == [0, 0, 0, 1]:
+                gold -= barrel.price
+            elif (barrel.potion_type == [0, 0, 0, 1] and dark_ml <= 500):
                 barrels_SKU[3] = barrel.sku
                 barrels_quantity[3] = (barrels_quantity[3] + 1)
-            gold -= barrel.price
+                gold -= barrel.price
     
     return_lst = []
     for index in range(len(barrels_SKU)):
