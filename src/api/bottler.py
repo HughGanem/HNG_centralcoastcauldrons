@@ -82,6 +82,7 @@ def get_bottle_plan():
 
     return_lst = []
     for potion in potions:
+        print([potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml])
         quantity = potion.quantity
         added_potion = False
 

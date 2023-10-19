@@ -76,19 +76,19 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     barrels_quantity = [0, 0, 0, 0]
     for barrel in wholesale_catalog:
         if (0 <= gold and gold >= barrel.price):
-            if (barrel.potion_type == [1, 0, 0, 0] and red_ml <= 500):
+            if (barrel.potion_type == [1, 0, 0, 0] and red_ml <= 500 and barrels_quantity[0] < barrel.quantity):
                 barrels_SKU[0] = barrel.sku
                 barrels_quantity[0] = (barrels_quantity[0] + 1)
                 gold -= barrel.price
-            elif (barrel.potion_type == [0, 1, 0, 0] and green_ml <= 500):
+            elif (barrel.potion_type == [0, 1, 0, 0] and green_ml <= 500 and barrels_quantity[1] < barrel.quantity):
                 barrels_SKU[1] = barrel.sku
                 barrels_quantity[1] = (barrels_quantity[1] + 1)
                 gold -= barrel.price
-            elif (barrel.potion_type == [0, 0, 1, 0] and blue_ml <= 500):
+            elif (barrel.potion_type == [0, 0, 1, 0] and blue_ml <= 500 and barrels_quantity[2] < barrel.quantity):
                 barrels_SKU[2] = barrel.sku
                 barrels_quantity[2] = (barrels_quantity[2] + 1)
                 gold -= barrel.price
-            elif (barrel.potion_type == [0, 0, 0, 1] and dark_ml <= 500):
+            elif (barrel.potion_type == [0, 0, 0, 1] and dark_ml <= 500 and barrels_quantity[3] < barrel.quantity):
                 barrels_SKU[3] = barrel.sku
                 barrels_quantity[3] = (barrels_quantity[3] + 1)
                 gold -= barrel.price
