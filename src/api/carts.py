@@ -22,9 +22,9 @@ def create_cart(new_cart: NewCart):
             """
             INSERT INTO carts (customer_name)
             VALUES (:customer_name)
-            RETURNING id
+            RETURNING cart_id
             """),
-            [{"customer_name" : new_cart.customer}]).scale_one()
+            [{"customer_name" : new_cart.customer}]).scalar_one()
 
     return cart_id
 
