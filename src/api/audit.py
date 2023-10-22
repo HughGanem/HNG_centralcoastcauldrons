@@ -15,19 +15,44 @@ router = APIRouter(
 def get_inventory():
     """ """
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT num_red_ml, num_green_ml, num_blue_ml, num_dark_ml, gold FROM global_inventory;")).first()
-    with db.engine.begin() as connection:
-        total_potions = connection.execute(sqlalchemy.text(
+        potion_result = connection.execute(sqlalchemy.text(
             """
-            SELECT SUM(quantity) AS total_sum
-            FROM potions;
+            SELECT 
+            SUM(quantity) AS potion_quantity,
+            SUM(gold) AS gold_cost
+            FROM potion_ledger;
             """
-        )).first().total_sum
+        )).first()
+    potion_amount = potion_result.potion_quantity
+    potion_gold = potion_result.gold_cost
     
-    total_ml = result.num_red_ml + result.num_green_ml + result.num_blue_ml + result.num_dark_ml
-    gold = result.gold
+    with db.engine.begin() as connection:
+        ml_result = connection.execute(sqlalchemy.text(
+            """
+            SELECT 
+            SUM(red_ml + green_ml + blue_ml + dark_ml) AS total_ml,
+            SUM(gold) AS gold_cost
+            FROM ml_ledger;
+            """
+        )).first()
+    ml_amount = ml_result.total_ml
+    ml_gold = ml_result.gold_cost
 
-    return {"number_of_potions": total_potions, "ml_in_barrels": total_ml, "gold": gold}
+    
+    if (potion_amount is None):
+        potion_amount = 0
+    
+    if (potion_gold is None):
+        potion_gold = 0
+
+    if (ml_amount is None):
+        ml_amount = 0
+    
+    if (ml_gold is None):
+        ml_gold = 0
+    
+
+    return {"number_of_potions": potion_amount, "ml_in_barrels": ml_amount, "gold": potion_gold + ml_gold}
 
 class Result(BaseModel):
     gold_match: bool

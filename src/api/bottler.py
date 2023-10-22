@@ -113,8 +113,6 @@ def get_bottle_plan():
             quantity = 0
 
 
-
-
         print([potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml])
         added_potion = False
 

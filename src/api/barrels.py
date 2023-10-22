@@ -23,6 +23,9 @@ class Barrel(BaseModel):
 @router.post("/deliver")
 def post_deliver_barrels(barrels_delivered: list[Barrel]):
     """Check and make the API call"""
+    if (len(barrels_delivered) == 0):
+        return "Ok"
+    
     for barrel in barrels_delivered:
         current_red_ml = 0
         current_green_ml = 0
@@ -74,13 +77,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
             FROM potion_ledger;
             """
         )).first()
-    
-    potion_gold = result_potion.num_gold
-    if (potion_gold is None):
-        potion_gold = 0
 
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(
+        result_ml = connection.execute(sqlalchemy.text(
         """SELECT 
         SUM(gold) AS num_gold,
         SUM(red_ml) AS num_red_ml,
@@ -89,12 +88,32 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
         SUM(dark_ml) AS num_dark_ml
         FROM ml_ledger;"""
         )).first()
+    
+    potion_gold = result_potion.num_gold
+    if (potion_gold is None):
+        potion_gold = 0
 
-    gold = result.num_gold + potion_gold
-    red_ml = result.num_red_ml
-    green_ml = result.num_green_ml
-    blue_ml = result.num_blue_ml
-    dark_ml = result.num_dark_ml
+    ml_gold = result_ml.num_gold
+    if (ml_gold is None):
+        ml_gold = 0
+    
+    red_ml = result_ml.num_red_ml
+    if (red_ml is None):
+        red_ml = 0
+    
+    green_ml = result_ml.num_green_ml
+    if (green_ml is None):
+        green_ml = 0
+
+    blue_ml = result_ml.num_blue_ml
+    if (blue_ml is None):
+        blue_ml = 0
+    
+    dark_ml = result_ml.num_dark_ml
+    if (dark_ml is None):
+        dark_ml = 0
+
+    gold = potion_gold + ml_gold
 
     return_lst = []
     for barrel in wholesale_catalog:
@@ -112,7 +131,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
                 blue_ml += barrel.ml_per_barrel
             elif (barrel.potion_type == [0, 0, 0, 1]):
                 dark_ml += barrel.ml_per_barrel
-
 
             ml_amount += barrel.ml_per_barrel
             quantity += 1
