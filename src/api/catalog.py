@@ -15,22 +15,36 @@ def get_catalog():
     # Can return a max of 20 items.
 
     with db.engine.begin() as connection:
-        potions = connection.execute(sqlalchemy.text("SELECT * FROM potions WHERE quantity != 0;")).all()
+        potions = connection.execute(sqlalchemy.text("SELECT * FROM potions;")).all()
 
     return_lst = []
     count = 0
     for potion in potions:
         if count >= 20:
             break
+        with db.engine.begin() as connection:
+            result = connection.execute(sqlalchemy.text(
+            """
+            SELECT SUM(quantity) AS potion_quantity
+            FROM potion_ledger
+            WHERE potion_ledger.potion_id = :potion_id;
+            """
+            ),
+            [{"potion_id" : potion.potion_id}]).first()
+        
+        quantity = result.potion_quantity
+        if (quantity is None):
+            quantity = 0
 
-        return_lst.append(
-            {
-                "sku": potion.sku,
-                "name": potion.name,
-                "quantity": potion.quantity,
-                "price": potion.price,
-                "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml],
-            }
+        if (quantity != 0):
+            return_lst.append(
+                {
+                    "sku": potion.sku,
+                    "name": potion.name,
+                    "quantity": quantity,
+                    "price": potion.price,
+                    "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml],
+                }
         )
         count += 1
     return return_lst
