@@ -33,7 +33,7 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
             transaction_id = connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO transaction (description) 
-                VALUES ('Made :quantity :potion_type potion(s) using :red_ml, :blue_ml, :green_ml and :dark_ml.')
+                VALUES ('Created potions! Made :quantity potions that are [:red_ml, :blue_ml, :green_ml, :dark_ml] type.')
                 RETURNING transaction_id;
                 """),
                 [{"quantity": potion.quantity, "potion_type": potion.potion_type,
@@ -59,9 +59,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                     WHERE potions.red_ml = :red_ml and potions.green_ml = :green_ml and potions.blue_ml = :blue_ml and potions.dark_ml = :dark_ml;
                     """),
                     [{"transaction_id": transaction_id, "quantity" : potion.quantity, "red_ml" : red_ml, "green_ml" : green_ml, "blue_ml" : blue_ml, "dark_ml" : dark_ml}])
-
-    print(potions_delivered)
-    print({"red_ml": red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml})
     
     return "OK"
 
@@ -112,8 +109,6 @@ def get_bottle_plan():
         if (quantity is None):
             quantity = 0
 
-
-        print([potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml])
         added_potion = False
 
         while (red_ml >= potion.red_ml and green_ml >= potion.green_ml and blue_ml >= potion.blue_ml and dark_ml >= potion.dark_ml and quantity <= 4):
@@ -132,7 +127,6 @@ def get_bottle_plan():
                 }
             )
     
-    print(return_lst)
     if (len(return_lst) == 0):
         return ()
     return return_lst

@@ -47,10 +47,11 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
             transaction_id = connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO transaction (description) 
-                VALUES ('Brought :quantity :potion_type for :price.')
+                VALUES ('Brought Barrels! :quantity of [:red_ml, :green_ml, :blue_ml, :dark_ml] for :price.')
                 RETURNING transaction_id;
                 """),
-                [{"quantity": barrel.quantity, "potion_type": barrel.potion_type, "price": barrel.price}]
+                [{"quantity": barrel.quantity, "red_ml" : barrel.potion_type[0], "green_ml" : barrel.potion_type[1], "blue_ml" : barrel.potion_type[2],
+                "dark_ml" : barrel.potion_type[3], "potion_type": barrel.potion_type, "price": barrel.price}]
                 ).scalar_one()
             
         with db.engine.begin() as connection:
@@ -67,8 +68,6 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 # Gets called once a day
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
-    """Print and return the catalog"""
-    #print(wholesale_catalog)
     with db.engine.begin() as connection:
         result_potion = connection.execute(sqlalchemy.text(
             """

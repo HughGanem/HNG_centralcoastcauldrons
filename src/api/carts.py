@@ -32,12 +32,34 @@ def create_cart(new_cart: NewCart):
 @router.get("/{cart_id}")
 def get_cart(cart_id: int):
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text(
+        cust_name = connection.execute(sqlalchemy.text(
             """
-            SELECT cart_id, customer_name, total_cost, total_potion_num FROM carts WHERE cart_id = :cart_id;
+            SELECT *
+            FROM carts
+            WHERE carts.cart_id = :cart_id;
             """),
-            [{"cart_id" : cart_id}]).first()
-    return [{"cart_id" : cart_id, "customer_name" : result.customer_name, "total_cost" : result.total_cost, "total_potion_num" : result.total_potion_num}]
+            [{"cart_id" : cart_id}]).first().customer_name
+    
+    with db.engine.begin() as connection:
+        result = connection.execute(sqlalchemy.text(
+        """
+        SELECT 
+        SUM(quantity) AS potion_quantity,
+        SUM(price) AS gold_cost
+        FROM cart_items
+        WHERE cart_items.cart_id = :cart_id;
+        """
+        ),
+        [{"cart_id" : cart_id}]).first()
+    
+    quantity = result.potion_quantity
+    if (quantity is None):
+        quantity = 0
+    gold = result.gold_cost
+    if (gold is None):
+        gold = 0
+    
+    return [{"cart_id" : cart_id, "customer_name" : cust_name, "quantity" : quantity, "gold_cost" : gold}]
 
 
 class CartItem(BaseModel):
@@ -65,21 +87,10 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
         #Add items to cart
         connection.execute(sqlalchemy.text(
             """
-            INSERT INTO cart_items (cart_id, potion_id, quantity)
-            SELECT :cart_id, potion_ledger.potion_id, :quantity
-            FROM potion_ledger 
-            WHERE potion_ledger.sku = :item_sku and :quantity <= :potion_quantity;
-            """),
-            [{"cart_id": cart_id, "item_sku": item_sku, "quantity": cart_item.quantity, "potion_quantity" : quantity}])
-    
-    with db.engine.begin() as connection:
-        #Update overall cart
-        connection.execute(sqlalchemy.text(
-            """
-            UPDATE carts
-            SET total_potion_num = total_potion_num + :quantity,total_cost = total_cost + (potions.price * :quantity)
-            FROM potions
-            WHERE potions.sku = :item_sku and cart_id = :cart_id and :quantity <= :potion_quantity;
+            INSERT INTO cart_items (cart_id, potion_id, quantity, price, sku)
+            SELECT :cart_id, potion_ledger.potion_id, :quantity, potions.price * :quantity, :item_sku
+            FROM potion_ledger, potions 
+            WHERE potion_ledger.sku = :item_sku and :quantity <= :potion_quantity and potions.sku = :item_sku;
             """),
             [{"cart_id": cart_id, "item_sku": item_sku, "quantity": cart_item.quantity, "potion_quantity" : quantity}])
 
@@ -102,27 +113,13 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
         
     for item in cart_items:
         with db.engine.begin() as connection:
-            potion = connection.execute(sqlalchemy.text(
-                """
-                SELECT * 
-                FROM potions
-                WHERE potion_id = :potion_id;
-                """
-            ),
-            [{"potion_id": item.potion_id}]).first()
-            
-        price = potion.price
-        sku = potion.sku
-
-
-        with db.engine.begin() as connection:
             transaction_id = connection.execute(sqlalchemy.text(
                 """
                 INSERT INTO transaction (description) 
-                VALUES ('Customer :cust_id brought :num_potions that are :potion_type costing :gold_cost.')
+                VALUES ('Potions brought! Customer :cust_id brought :num_potions potions that are :potion_type costing :gold_cost.')
                 RETURNING transaction_id;
                 """),
-                [{"cust_id" : cart_id, "num_potions" : item.quantity, "potion_type" : item.potion_id, "gold_cost" : item.quantity * price}]
+                [{"cust_id" : cart_id, "num_potions" : item.quantity, "potion_type" : item.potion_id, "gold_cost" : item.price}]
                 ).scalar_one()
             
         with db.engine.begin() as connection:
@@ -132,7 +129,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                     INSERT INTO potion_ledger (transaction_id, potion_id, sku, gold, quantity)
                     VALUES (:transaction_id, :potion_id, :sku, :gold, :quantity);
                     """),
-                    [{"transaction_id": transaction_id, "quantity" : -item.quantity, "potion_id" : item.potion_id, "sku" : sku, "gold" : item.quantity * price}])
+                    [{"transaction_id": transaction_id, "quantity" : -item.quantity, "potion_id" : item.potion_id, "sku" : item.sku, "gold" : item.price}])
 
 
     with db.engine.begin() as connection:
