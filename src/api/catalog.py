@@ -36,6 +36,7 @@ def get_catalog():
         if (quantity is None):
             quantity = 0
 
+        #TODO: Removed extra "," at the end of the potion_type
         if (quantity != 0):
             return_lst.append(
                 {
@@ -43,8 +44,10 @@ def get_catalog():
                     "name": potion.name,
                     "quantity": quantity,
                     "price": potion.price,
-                    "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml],
+                    "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml]
                 }
         )
         count += 1
+    if (len(return_lst) == 0):
+        return []
     return return_lst

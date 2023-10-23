@@ -24,9 +24,9 @@ def create_cart(new_cart: NewCart):
             VALUES (:customer_name)
             RETURNING cart_id
             """),
-            [{"customer_name" : new_cart.customer}]).scalar_one()
-
-    return cart_id
+            [{"customer_name" : new_cart.customer}]).first().cart_id
+    #TODO: I am returning a cart_id was int now returning a string
+    return {"cart_id": cart_id}
 
 
 @router.get("/{cart_id}")
