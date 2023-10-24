@@ -43,8 +43,8 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
         with db.engine.begin() as connection:
             connection.execute(sqlalchemy.text(
                 """
-                INSERT INTO ml_ledger (transaction_id, gold, red_ml, green_ml, blue_ml, dark_ml) 
-                VALUES (:transaction_id, 0, :red_ml, :green_ml, :blue_ml, :dark_ml);
+                INSERT INTO ml_ledger (transaction_id, red_ml, green_ml, blue_ml, dark_ml) 
+                VALUES (:transaction_id, :red_ml, :green_ml, :blue_ml, :dark_ml);
                 """
             ),
             [{"transaction_id": transaction_id, "red_ml" : -red_ml * potion.quantity, "green_ml" : -green_ml * potion.quantity, "blue_ml" : -blue_ml * potion.quantity, "dark_ml" : -dark_ml * potion.quantity}]
@@ -53,8 +53,8 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
             connection.execute(
                 sqlalchemy.text(
                     """
-                    INSERT INTO potion_ledger (transaction_id, potion_id, sku, gold, quantity)
-                    SELECT :transaction_id, potions.potion_id, potions.sku, 0, :quantity
+                    INSERT INTO potion_ledger (transaction_id, potion_id, quantity)
+                    SELECT :transaction_id, potions.potion_id, :quantity
                     FROM potions
                     WHERE potions.red_ml = :red_ml and potions.green_ml = :green_ml and potions.blue_ml = :blue_ml and potions.dark_ml = :dark_ml;
                     """),
@@ -90,7 +90,9 @@ def get_bottle_plan():
 
     with db.engine.begin() as connection:
         potions = connection.execute(sqlalchemy.text(
-            """SELECT * FROM potions ORDER BY potion_id DESC;
+            """SELECT * 
+            FROM potions 
+            ORDER BY potion_id DESC;
             """)).all()
 
     return_lst = []

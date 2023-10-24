@@ -18,41 +18,43 @@ def get_inventory():
         potion_result = connection.execute(sqlalchemy.text(
             """
             SELECT 
-            SUM(quantity) AS potion_quantity,
-            SUM(gold) AS gold_cost
+            SUM(quantity) AS potion_quantity
             FROM potion_ledger;
             """
         )).first()
-    potion_amount = potion_result.potion_quantity
-    potion_gold = potion_result.gold_cost
-    
-    with db.engine.begin() as connection:
+
         ml_result = connection.execute(sqlalchemy.text(
             """
             SELECT 
-            SUM(red_ml + green_ml + blue_ml + dark_ml) AS total_ml,
-            SUM(gold) AS gold_cost
+            SUM(red_ml + green_ml + blue_ml + dark_ml) AS total_ml
             FROM ml_ledger;
             """
         )).first()
+
+        gold_result = connection.execute(sqlalchemy.text(
+            """
+            SELECT 
+            SUM(gold) AS gold_cost
+            FROM gold_ledger;
+            """
+        )).first()
+
+    potion_amount = potion_result.potion_quantity
     ml_amount = ml_result.total_ml
-    ml_gold = ml_result.gold_cost
+    gold_amount = gold_result.gold_cost
 
     
     if (potion_amount is None):
         potion_amount = 0
     
-    if (potion_gold is None):
-        potion_gold = 0
-
     if (ml_amount is None):
         ml_amount = 0
-    
-    if (ml_gold is None):
-        ml_gold = 0
+
+    if (gold_amount is None):
+        gold_amount = 0
     
 
-    return {"number_of_potions": potion_amount, "ml_in_barrels": ml_amount, "gold": potion_gold + ml_gold}
+    return {"number_of_potions": potion_amount, "ml_in_barrels": ml_amount, "gold": gold_amount}
 
 class Result(BaseModel):
     gold_match: bool

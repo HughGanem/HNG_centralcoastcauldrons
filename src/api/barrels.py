@@ -57,11 +57,20 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
         with db.engine.begin() as connection:
             connection.execute(sqlalchemy.text(
                 """
-                INSERT INTO ml_ledger (transaction_id, gold, red_ml, green_ml, blue_ml, dark_ml) 
-                VALUES (:transaction_id, :gold, :red_ml, :green_ml, :blue_ml, :dark_ml);
+                INSERT INTO ml_ledger (transaction_id, red_ml, green_ml, blue_ml, dark_ml) 
+                VALUES (:transaction_id, :red_ml, :green_ml, :blue_ml, :dark_ml);
                 """
             ),
-            [{"transaction_id": transaction_id, "gold": -barrel.price * barrel.quantity, "red_ml": current_red_ml, "green_ml": current_green_ml, "blue_ml": current_blue_ml, "dark_ml": current_dark_ml}]
+            [{"transaction_id": transaction_id, "red_ml": current_red_ml, "green_ml": current_green_ml, "blue_ml": current_blue_ml, "dark_ml": current_dark_ml}]
+            )
+        
+        with db.engine.begin() as connection:
+            connection.execute(sqlalchemy.text(
+                """
+                INSERT INTO gold_ledger (transaction_id, gold)
+                VALUES(:transaction_id, :gold) 
+                """),
+            [{"transaction_id": transaction_id, "gold" : -barrel.price * barrel.quantity}]
             )
     return "Ok"
 
@@ -69,32 +78,26 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
 @router.post("/plan")
 def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     with db.engine.begin() as connection:
-        result_potion = connection.execute(sqlalchemy.text(
+        gold = connection.execute(sqlalchemy.text(
             """
             SELECT 
             SUM(gold) AS num_gold
-            FROM potion_ledger;
+            FROM gold_ledger;
             """
-        )).first()
+        )).first().num_gold
 
     with db.engine.begin() as connection:
         result_ml = connection.execute(sqlalchemy.text(
-        """SELECT 
-        SUM(gold) AS num_gold,
+        """SELECT
         SUM(red_ml) AS num_red_ml,
         SUM(green_ml) AS num_green_ml,
         SUM(blue_ml) AS num_blue_ml,
         SUM(dark_ml) AS num_dark_ml
         FROM ml_ledger;"""
         )).first()
-    
-    potion_gold = result_potion.num_gold
-    if (potion_gold is None):
-        potion_gold = 0
 
-    ml_gold = result_ml.num_gold
-    if (ml_gold is None):
-        ml_gold = 0
+    if (gold is None):
+        gold = 0
     
     red_ml = result_ml.num_red_ml
     if (red_ml is None):
@@ -112,7 +115,6 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     if (dark_ml is None):
         dark_ml = 0
 
-    gold = potion_gold + ml_gold
 
     return_lst = []
     for barrel in wholesale_catalog:

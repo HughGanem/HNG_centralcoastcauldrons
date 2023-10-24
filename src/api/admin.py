@@ -21,29 +21,39 @@ def reset():
             """
             DELETE FROM cart_items;
             DELETE FROM carts;
+            DELETE FROM gold_ledger;
             DELETE FROM ml_ledger;
             DELETE FROM potion_ledger;
             DELETE FROM transaction;
             """
         ))
-    with db.engine.begin() as connection:
-            transaction_id = connection.execute(sqlalchemy.text(
-                """
-                INSERT INTO transaction (description) 
-                VALUES ('Reset shop! Set gold to 100, got rid of potions, carts and ml')
-                RETURNING transaction_id;
-                """)).scalar_one()
 
+    with db.engine.begin() as connection:
+        transaction_id = connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO transaction (description) 
+            VALUES ('Reset shop! Set gold to 100, got rid of potions, carts and ml')
+            RETURNING transaction_id;
+            """)).scalar_one()
+        
     with db.engine.begin() as connection:
         connection.execute(sqlalchemy.text(
             """
-            INSERT INTO ml_ledger (transaction_id, gold, red_ml, green_ml, blue_ml, dark_ml) 
-            VALUES (:transaction_id, 100, 0, 0, 0, 0);
+            INSERT INTO ml_ledger (transaction_id, red_ml, green_ml, blue_ml, dark_ml) 
+            VALUES (:transaction_id, 0, 0, 0, 0);
             """
         ),
         [{"transaction_id": transaction_id}])
     
-
+    with db.engine.begin() as connection:
+        connection.execute(sqlalchemy.text(
+            """
+            INSERT INTO gold_ledger (transaction_id, gold)
+            VALUES (:transaction_id, 100);
+            """
+        ),
+        [{"transaction_id": transaction_id}])
+    
     return "OK"
 
 
