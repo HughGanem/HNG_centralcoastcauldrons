@@ -21,9 +21,11 @@ class PotionInventory(BaseModel):
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
     if (len(potions_delivered) == 0):
-        return "Ok"
+        return "No potions made!"
 
     for potion in potions_delivered:
+        if (potion.quantity == 0):
+            continue
         red_ml = potion.potion_type[0]
         green_ml = potion.potion_type[1]
         blue_ml = potion.potion_type[2]
@@ -113,21 +115,23 @@ def get_bottle_plan():
 
         added_potion = False
 
-        while (red_ml >= potion.red_ml and green_ml >= potion.green_ml and blue_ml >= potion.blue_ml and dark_ml >= potion.dark_ml and quantity <= 4):
-            red_ml -= potion.red_ml
-            green_ml -= potion.green_ml
-            blue_ml -= potion.blue_ml
-            dark_ml -= potion.dark_ml
-            quantity += 1
-            added_potion = True
-        
-        if (added_potion):
-            return_lst.append(
-                {
-                    "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml],
-                    "quantity": quantity
-                }
-            )
+        quantity_made = 0
+        if (quantity <= 4):
+            while (red_ml >= potion.red_ml and green_ml >= potion.green_ml and blue_ml >= potion.blue_ml and dark_ml >= potion.dark_ml and (quantity + quantity_made) <= 4):
+                red_ml -= potion.red_ml
+                green_ml -= potion.green_ml
+                blue_ml -= potion.blue_ml
+                dark_ml -= potion.dark_ml
+                quantity_made += 1
+                added_potion = True
+            
+            if (added_potion):
+                return_lst.append(
+                    {
+                        "potion_type": [potion.red_ml, potion.green_ml, potion.blue_ml, potion.dark_ml],
+                        "quantity": quantity_made
+                    }
+                )
     
     if (len(return_lst) == 0):
         return ()
