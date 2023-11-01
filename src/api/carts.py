@@ -44,10 +44,35 @@ def search_orders(
     ]).select_from(
         sqlalchemy.join(cart_items, potions, cart_items.c.potion_id == potions.c.potion_id)
         .join(carts, carts.c.cart_id == cart_items.c.cart_id)
-    )
+    ).limit(5).offset(5).order_by(sort_col).order_by(sort_order)
+
+    if (customer_name != ""):
+        stmt = stmt.where(carts.c.customer_name.ilike(f"%{customer_name}%"))
+    if (potion_sku != ""):
+        stmt = stmt.where(potions.c.sku.ilike(f"%{potion_sku}%"))
 
     with db.engine.connect() as conn:
         result = conn.execute(stmt)
+        json = []
+        for row in result:
+            json.append(
+                {
+                    "previous": "",
+                    "next": "",
+                    "results": [
+                        {
+                            "line_item_id": row.potion_id,
+                            "item_sku": row.sku,
+                            "customer_name": row.customer_name,
+                            "line_item_total": row.quantity,
+                            "timestamp": search_sort_options.timestamp,
+                        }
+                    ]
+                }
+            )
+
+    return json
+
 
     """
     Search for cart line items by customer name and/or potion sku.
@@ -74,19 +99,19 @@ def search_orders(
     time is 5 total line items.
     """
 
-    return {
-        "previous": "",
-        "next": "",
-        "results": [
-            {
-                "line_item_id": 1,
-                "item_sku": "1 oblivion potion",
-                "customer_name": "Scaramouche",
-                "line_item_total": 50,
-                "timestamp": "2021-01-01T00:00:00Z",
-            }
-        ],
-    }
+    # return {
+    #     "previous": "",
+    #     "next": "",
+    #     "results": [
+    #         {
+    #             "line_item_id": 1,
+    #             "item_sku": "1 oblivion potion",
+    #             "customer_name": "Scaramouche",
+    #             "line_item_total": 50,
+    #             "timestamp": "2021-01-01T00:00:00Z",
+    #         }
+    #     ],
+    # }
 
 
 class NewCart(BaseModel):
